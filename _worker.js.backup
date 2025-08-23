@@ -1260,7 +1260,7 @@ async function httpConnect(addressRemote, portRemote, log) {
                 log(`收到HTTP代理响应: ${headers.split('\r\n')[0]}`);
 
                 // 检查响应状态
-                if (headers.startsWith('http/2 200') || headers.startsWith('HTTP/1.0 200')) {
+                if (headers.startsWith('http/2 200') || headers.startsWith('http/1.1 200')) {
                     connected = true;
 
                     // 如果响应头之后还有数据，我们需要保存这些数据以便后续处理
