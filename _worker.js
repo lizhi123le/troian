@@ -1201,7 +1201,7 @@ async function httpConnect(addressRemote, portRemote, log) {
     });
 
     // 构建HTTP CONNECT请求
-    let connectRequest = `CONNECT ${addressRemote}:${portRemote} HTTP/1.1\r\n`;
+    let connectRequest = `CONNECT ${addressRemote}:${portRemote} http/2\r\n`;
     connectRequest += `Host: ${addressRemote}:${portRemote}\r\n`;
 
     // 添加代理认证（如果需要）
@@ -1260,7 +1260,7 @@ async function httpConnect(addressRemote, portRemote, log) {
                 log(`收到HTTP代理响应: ${headers.split('\r\n')[0]}`);
 
                 // 检查响应状态
-                if (headers.startsWith('HTTP/1.1 200') || headers.startsWith('HTTP/1.0 200')) {
+                if (headers.startsWith('http/2 200') || headers.startsWith('HTTP/1.0 200')) {
                     connected = true;
 
                     // 如果响应头之后还有数据，我们需要保存这些数据以便后续处理
