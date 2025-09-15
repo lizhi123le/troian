@@ -29,8 +29,8 @@ jobs:
         run: |
           set -euo pipefail
           BACKUP_FILE="_worker.js.backup"
-          echo "Downloading _worker.js from cmliu/edgetunnel..."
-          curl -s -L -o "$BACKUP_FILE" "https://raw.githubusercontent.com/cmliu/edgetunnel/main/_worker.js"
+          echo "Downloading _worker.js from cmliu/epeius..."
+          curl -s -L -o "$BACKUP_FILE" "https://raw.githubusercontent.com/cmliu/epeius/main/_worker.js"
           if [ ! -f "$BACKUP_FILE" ] || [ ! -s "$BACKUP_FILE" ]; then
             echo "Error: Failed to download or empty file for $BACKUP_FILE"
             exit 1
@@ -151,7 +151,7 @@ jobs:
           if git diff --cached --quiet; then
             echo "没有文件更改，跳过提交"
           else
-            git commit -m "混淆 _worker.js 文件并同步备份（从 cmliu/edgetunnel），版本: ${{ steps.extract-version.outputs.version }}"
+            git commit -m "混淆 _worker.js 文件并同步备份（从 cmliu/epeius），版本: ${{ steps.extract-version.outputs.version }}"
           fi
 
       - name: 推送更改
@@ -227,3 +227,4 @@ jobs:
             "https://uploads.github.com/repos/${{ github.repository }}/releases/$RELEASE_ID/assets?name=_worker.js.backup"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
