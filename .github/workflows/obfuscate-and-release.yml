@@ -25,7 +25,7 @@ jobs:
         with:
           persist-credentials: true
 
-      - name: 检查上游仓库更新
+      - name: 检查上游仓库更新并同步 _worker.js.backup
         id: check-update
         run: |
           set -euo pipefail
@@ -65,17 +65,37 @@ jobs:
             OLD_TOML_HASH=$(cat "$TOML_HASH_FILE")
           fi
           
-          # 比较哈希值以确定是否有更新
+          # 检查 _worker.js.backup 是否存在，若不存在则创建
+          if [ ! -f "$BACKUP_FILE" ]; then
+            echo "Creating initial $BACKUP_FILE from upstream _worker.js"
+            mv temp_worker.js "$BACKUP_FILE"
+            echo "$NEW_WORKER_HASH" > "$WORKER_HASH_FILE"
+          else
+            # 仅在 _worker.js 有更新时覆盖 _worker.js.backup
+            if [ "$NEW_WORKER_HASH" != "$OLD_WORKER_HASH" ]; then
+              echo "Upstream _worker.js updated, overwriting $BACKUP_FILE"
+              mv temp_worker.js "$BACKUP_FILE"
+              echo "$NEW_WORKER_HASH" > "$WORKER_HASH_FILE"
+            else
+              echo "No update for _worker.js, keeping existing $BACKUP_FILE"
+              rm -f temp_worker.js
+            fi
+          fi
+          
+          # 检查是否需要更新 wrangler.toml
+          if [ "$NEW_TOML_HASH" != "$OLD_TOML_HASH" ]; then
+            echo "Upstream wrangler.toml updated, overwriting $TOML_FILE"
+            mv temp_toml.toml "$TOML_FILE"
+            echo "$NEW_TOML_HASH" > "$TOML_HASH_FILE"
+          else
+            echo "No update for wrangler.toml, keeping existing $TOML_FILE"
+            rm -f temp_toml.toml
+          fi
+          
+          # 设置 has_update 标志
           if [ "$NEW_WORKER_HASH" != "$OLD_WORKER_HASH" ] || [ "$NEW_TOML_HASH" != "$OLD_TOML_HASH" ]; then
             echo "上游仓库有更新，执行后续步骤"
             echo "has_update=true" >> $GITHUB_OUTPUT
-            # 保存新哈希值
-            echo "$NEW_WORKER_HASH" > "$WORKER_HASH_FILE"
-            echo "$NEW_TOML_HASH" > "$TOML_HASH_FILE"
-            # 同步 _worker.js 到 _worker.js.backup
-            mv temp_worker.js "$BACKUP_FILE"
-            # 同步 wrangler.toml
-            mv temp_toml.toml "$TOML_FILE"
             # 如果 _worker.js 不存在，创建初始版本
             if [ ! -f "$WORKER_FILE" ]; then
               echo "Creating initial $WORKER_FILE from $BACKUP_FILE"
@@ -84,8 +104,6 @@ jobs:
           else
             echo "上游仓库无更新，跳过后续步骤"
             echo "has_update=false" >> $GITHUB_OUTPUT
-            # 清理临时文件
-            rm -f temp_worker.js temp_toml.toml
           fi
 
       - name: Set up Node.js
@@ -273,4 +291,3 @@ jobs:
             "https://uploads.github.com/repos/${{ github.repository }}/releases/$RELEASE_ID/assets?name=_worker.js.backup"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
