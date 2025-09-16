@@ -1,6 +1,7 @@
 name = "v20250907"
 compatibility_date = "2025-09-07"
-pages_build_output_dir = "troian"
+pages_build_output_dir = "dist"
+
 
 
 
