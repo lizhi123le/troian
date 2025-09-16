@@ -104,7 +104,6 @@ jobs:
           fi
 
       - name: 验证和修复 wrangler.toml
-        if: steps.check-update.outputs.has_update == 'true'
         run: |
           set -euo pipefail
           TOML_FILE="wrangler.toml"
@@ -340,3 +339,4 @@ jobs:
             "https://uploads.github.com/repos/${{ github.repository }}/releases/$RELEASE_ID/assets?name=_worker.js.backup"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
