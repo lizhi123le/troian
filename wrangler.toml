@@ -1,7 +1,8 @@
 name = "v20250907"
 main = "_worker.js"
 compatibility_date = "2025-09-07"
-pages_build_output_dir = ""
+pages_build_output_dir = "dist"
+
 
 
 
