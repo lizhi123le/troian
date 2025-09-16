@@ -103,6 +103,37 @@ jobs:
             echo "has_update=false" >> $GITHUB_OUTPUT
           fi
 
+          - name: 验证和修复 wrangler.toml
+          if: steps.check-update.outputs.has_update == 'true'
+          run: |
+          set -euo pipefail
+          TOML_FILE="wrangler.toml"
+          OUTPUT_DIR="dist"
+          
+          # 检查 wrangler.toml 是否存在
+          if [ ! -f "$TOML_FILE" ]; then
+            echo "Error: $TOML_FILE does not exist"
+            exit 1
+          fi
+          
+          # 检查是否包含 pages_build_output_dir
+          if ! grep -q 'pages_build_output_dir' "$TOML_FILE"; then
+            echo "Adding pages_build_output_dir to $TOML_FILE"
+            echo 'pages_build_output_dir = "dist"' >> "$TOML_FILE"
+          fi
+
+          # 创建输出目录
+          mkdir -p "$OUTPUT_DIR"
+          echo "Created output directory $OUTPUT_DIR"
+          
+          # 验证 wrangler.toml 的基本语法
+          if ! grep -qE '^[[:space:]]*\w+\s*=\s*' "$TOML_FILE"; then
+            echo "Error: $TOML_FILE appears to be invalid or empty"
+            exit 1
+          fi
+          
+          echo "$TOML_FILE validated and updated successfully"
+
       - name: Set up Node.js
         if: steps.check-update.outputs.has_update == 'true'
         uses: actions/setup-node@v4
@@ -286,3 +317,4 @@ jobs:
             "https://uploads.github.com/repos/${{ github.repository }}/releases/$RELEASE_ID/assets?name=_worker.js.backup"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
