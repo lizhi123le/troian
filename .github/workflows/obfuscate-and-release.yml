@@ -107,7 +107,7 @@ jobs:
         run: |
           set -euo pipefail
           TOML_FILE="wrangler.toml"
-          OUTPUT_DIR="main"
+          OUTPUT_DIR="dist"
           
           # 检查 wrangler.toml 是否存在
           if [ ! -f "$TOML_FILE" ]; then
@@ -134,7 +134,7 @@ jobs:
           
           # 添加或更新 pages_build_output_dir
           if ! grep -q '^pages_build_output_dir\s*=' "$TOML_FILE"; then
-            echo 'pages_build_output_dir = "main"' >> "$TEMP_TOML"
+            echo 'pages_build_output_dir = "dist"' >> "$TEMP_TOML"
           else
             # 如果存在，保留原始值
             grep '^pages_build_output_dir\s*=' "$TOML_FILE" >> "$TEMP_TOML"
@@ -339,6 +339,7 @@ jobs:
             "https://uploads.github.com/repos/${{ github.repository }}/releases/$RELEASE_ID/assets?name=_worker.js.backup"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
 
 
 
