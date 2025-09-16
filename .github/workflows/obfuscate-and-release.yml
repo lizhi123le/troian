@@ -102,60 +102,6 @@ jobs:
           if [ -z "${{ steps.check-update.outputs.has_update }}" ]; then
             echo "has_update=false" >> $GITHUB_OUTPUT
           fi
-
-      - name: 验证和修复 wrangler.toml
-        run: |
-          set -euo pipefail
-          TOML_FILE="wrangler.toml"
-          OUTPUT_DIR="dist"
-          
-          # 检查 wrangler.toml 是否存在
-          if [ ! -f "$TOML_FILE" ]; then
-            echo "Error: $TOML_FILE does not exist"
-            exit 1
-          fi
-          
-          # 创建临时文件以重建 wrangler.toml
-          TEMP_TOML="temp_wrangler.toml"
-          touch "$TEMP_TOML"
-          
-          # 读取现有 wrangler.toml 内容并逐行处理，确保有效属性
-          grep -vE '^\s*($|#.*$)' "$TOML_FILE" | while IFS= read -r line; do
-            # 跳过无效或重复的 pages_build_output_dir
-            if [[ "$line" =~ ^pages_build_output_dir\s*= ]]; then
-              continue
-            fi
-            # 写入有效行
-            echo "$line" >> "$TEMP_TOML"
-          done
-          
-          # 确保每行以换行符结尾
-          echo "" >> "$TEMP_TOML"
-          
-          # 添加或更新 pages_build_output_dir
-          if ! grep -q '^pages_build_output_dir\s*=' "$TOML_FILE"; then
-            echo 'pages_build_output_dir = "dist"' >> "$TEMP_TOML"
-          else
-            # 如果存在，保留原始值
-            grep '^pages_build_output_dir\s*=' "$TOML_FILE" >> "$TEMP_TOML"
-          fi
-
-          # 替换原始 wrangler.toml
-          mv "$TEMP_TOML" "$TOML_FILE"
-          
-          # 创建输出目录
-          mkdir -p "$OUTPUT_DIR"
-          echo "Created output directory $OUTPUT_DIR"
-          
-          # 验证 wrangler.toml 的基本语法
-          if ! grep -qE '^[[:space:]]*\w+\s*=\s*' "$TOML_FILE"; then
-            echo "Error: $TOML_FILE appears to be invalid or empty"
-            exit 1
-          fi
-          
-          echo "$TOML_FILE validated and updated successfully"
-          cat "$TOML_FILE"
-          
       - name: Set up Node.js
         if: steps.check-update.outputs.has_update == 'true'
         uses: actions/setup-node@v4
@@ -168,7 +114,6 @@ jobs:
           npm install
           sudo apt-get update
           sudo apt-get install -y jq zip
-          
       - name: Install Source Dependencies
         if: steps.check-update.outputs.has_update == 'true'
         working-directory: ${{ env.SOURCE_DIR }}
@@ -183,7 +128,6 @@ jobs:
           else
             echo "No package.json in source directory, skipping dependency installation."
           fi
-          
       - name: Install Repository Dependencies
         if: steps.check-update.outputs.has_update == 'true'
         working-directory: ${{ github.workspace }}
@@ -198,7 +142,6 @@ jobs:
           else
             echo "No package.json in repository, skipping dependency installation."
           fi
-          
       - name: 检查备份文件并创建 _worker_temp.js
         if: steps.check-update.outputs.has_update == 'true'
         run: |
@@ -226,7 +169,6 @@ jobs:
           
           echo "$TEMP_FILE created successfully from $BACKUP_FILE at $(pwd)/$TEMP_FILE"
           ls -la
-          
       - name: 混淆代码
         if: steps.check-update.outputs.has_update == 'true'
         run: |
@@ -240,7 +182,6 @@ jobs:
             exit 1
           fi
           echo "_worker.js created successfully at $(pwd)/_worker.js"
-          
       - name: 压缩 _worker.js 为 worker.zip
         if: steps.check-update.outputs.has_update == 'true'
         run: |
@@ -252,7 +193,6 @@ jobs:
           fi
           echo "worker.zip created successfully at $(pwd)/worker.zip"
           ls -la
-          
       - name: 提交更改
         if: steps.check-update.outputs.has_update == 'true'
         run: |
@@ -265,7 +205,6 @@ jobs:
           else
             git commit -m "混淆 _worker.js 文件、同步备份和 wrangler.toml（从 cmliu/epeius），版本: ${{ steps.extract-version.outputs.version }}"
           fi
-          
       - name: 推送更改
         if: steps.check-update.outputs.has_update == 'true'
         uses: ad-m/github-push-action@master
@@ -289,7 +228,6 @@ jobs:
           fi
           echo "Extracted version: $VERSION"
           echo "version=$VERSION" >> $GITHUB_OUTPUT
-          
       - name: 检查已发布版本
         if: steps.check-update.outputs.has_update == 'true'
         id: check-version
@@ -305,7 +243,6 @@ jobs:
             echo "Release $VERSION does not exist, proceeding with release creation."
             echo "skip_release=false" >> $GITHUB_OUTPUT
           fi
-          
       - name: 创建 GitHub 发行版
         if: steps.check-update.outputs.has_update == 'true' && steps.check-version.outputs.skip_release != 'true'
         run: |
@@ -339,7 +276,3 @@ jobs:
             "https://uploads.github.com/repos/${{ github.repository }}/releases/$RELEASE_ID/assets?name=_worker.js.backup"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-
-
-
