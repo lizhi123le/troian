@@ -1,18 +1,4 @@
-name = "v20250907"
+name = "t20250907"
+main = "_worker.js"
 compatibility_date = "2025-09-07"
-pages_build_output_dir = ""
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+keep_vars = true
