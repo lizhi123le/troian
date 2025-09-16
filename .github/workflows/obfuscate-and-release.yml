@@ -111,11 +111,33 @@ jobs:
             exit 1
           fi
           
-          # 检查是否包含 pages_build_output_dir
-          if ! grep -q 'pages_build_output_dir' "$TOML_FILE"; then
-            echo "Adding pages_build_output_dir to $TOML_FILE"
-            echo 'pages_build_output_dir = "dist"' >> "$TOML_FILE"
+          # 创建临时文件以重建 wrangler.toml
+          TEMP_TOML="temp_wrangler.toml"
+          touch "$TEMP_TOML"
+          
+          # 读取现有 wrangler.toml 内容并逐行处理，确保有效属性
+          grep -vE '^\s*($|#.*$)' "$TOML_FILE" | while IFS= read -r line; do
+            # 跳过无效或重复的 pages_build_output_dir
+            if [[ "$line" =~ ^pages_build_output_dir\s*= ]]; then
+              continue
+            fi
+            # 写入有效行
+            echo "$line" >> "$TEMP_TOML"
+          done
+          
+          # 确保每行以换行符结尾
+          echo "" >> "$TEMP_TOML"
+          
+          # 添加或更新 pages_build_output_dir
+          if ! grep -q '^pages_build_output_dir\s*=' "$TOML_FILE"; then
+            echo 'pages_build_output_dir = "dist"' >> "$TEMP_TOML"
+          else
+            # 如果存在，保留原始值
+            grep '^pages_build_output_dir\s*=' "$TOML_FILE" >> "$TEMP_TOML"
           fi
+
+          # 替换原始 wrangler.toml
+          mv "$TEMP_TOML" "$TOML_FILE"
           
           # 创建输出目录
           mkdir -p "$OUTPUT_DIR"
@@ -128,6 +150,7 @@ jobs:
           fi
           
           echo "$TOML_FILE validated and updated successfully"
+          cat "$TOML_FILE"
 
       - name: Set up Node.js
         if: steps.check-update.outputs.has_update == 'true'
@@ -312,3 +335,4 @@ jobs:
             "https://uploads.github.com/repos/${{ github.repository }}/releases/$RELEASE_ID/assets?name=_worker.js.backup"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
