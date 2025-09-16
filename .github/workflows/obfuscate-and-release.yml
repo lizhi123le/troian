@@ -25,8 +25,8 @@ jobs:
         id: check-update
         run: |
           set -euo pipefail
-          WORKER_URL="https://raw.githubusercontent.com/cmliu/edgetunnel/main/_worker.js"
-          TOML_URL="https://raw.githubusercontent.com/cmliu/edgetunnel/main/wrangler.toml"
+          WORKER_URL="https://raw.githubusercontent.com/cmliu/epeius/main/_worker.js"
+          TOML_URL="https://raw.githubusercontent.com/cmliu/epeius/main/wrangler.toml"
           WORKER_FILE="_worker.js"
           BACKUP_FILE="_worker.js.backup"
           TOML_FILE="wrangler.toml"
@@ -80,21 +80,26 @@ jobs:
             fi
           fi
           
-          # 移动 wrangler.toml 到最终位置
-          mv temp_toml.toml "$TOML_FILE"
-          echo "$NEW_TOML_HASH" > "$TOML_HASH_FILE"
-          
-          # 设置 has_update 标志
-          if [ "$NEW_WORKER_HASH" != "$OLD_WORKER_HASH" ] || [ "$NEW_TOML_HASH" != "$OLD_TOML_HASH" ] || [ ! -f "$WORKER_FILE" ]; then
-            echo "上游仓库有更新或 _worker.js 不存在，执行后续步骤"
+          # 检查是否需要更新 wrangler.toml
+          if [ ! -f "$TOML_FILE" ] || [ "$NEW_TOML_HASH" != "$OLD_TOML_HASH" ]; then
+            echo "Upstream wrangler.toml updated or not present, overwriting $TOML_FILE"
+            mv temp_toml.toml "$TOML_FILE"
+            echo "$NEW_TOML_HASH" > "$TOML_HASH_FILE"
             echo "has_update=true" >> $GITHUB_OUTPUT
-            # 如果 _worker.js 不存在，创建初始版本
-            if [ ! -f "$WORKER_FILE" ] && [ -f "$BACKUP_FILE" ]; then
-              echo "Creating initial $WORKER_FILE from $BACKUP_FILE"
-              cp "$BACKUP_FILE" "$WORKER_FILE"
-            fi
           else
-            echo "上游仓库无更新，跳过后续步骤"
+            echo "No update for wrangler.toml, keeping existing $TOML_FILE"
+            rm -f temp_toml.toml
+          fi
+          
+          # 如果 _worker.js 不存在，创建初始版本
+          if [ ! -f "$WORKER_FILE" ] && [ -f "$BACKUP_FILE" ]; then
+            echo "Creating initial $WORKER_FILE from $BACKUP_FILE"
+            cp "$BACKUP_FILE" "$WORKER_FILE"
+            echo "has_update=true" >> $GITHUB_OUTPUT
+          fi
+          
+          # 如果 has_update 未设置，设为 false
+          if [ -z "${{ steps.check-update.outputs.has_update }}" ]; then
             echo "has_update=false" >> $GITHUB_OUTPUT
           fi
 
@@ -151,7 +156,7 @@ jobs:
           
           echo "$TOML_FILE validated and updated successfully"
           cat "$TOML_FILE"
-
+          
       - name: Set up Node.js
         if: steps.check-update.outputs.has_update == 'true'
         uses: actions/setup-node@v4
@@ -164,7 +169,7 @@ jobs:
           npm install
           sudo apt-get update
           sudo apt-get install -y jq zip
-
+          
       - name: Install Source Dependencies
         if: steps.check-update.outputs.has_update == 'true'
         working-directory: ${{ env.SOURCE_DIR }}
@@ -179,7 +184,7 @@ jobs:
           else
             echo "No package.json in source directory, skipping dependency installation."
           fi
-
+          
       - name: Install Repository Dependencies
         if: steps.check-update.outputs.has_update == 'true'
         working-directory: ${{ github.workspace }}
@@ -194,7 +199,7 @@ jobs:
           else
             echo "No package.json in repository, skipping dependency installation."
           fi
-
+          
       - name: 检查备份文件并创建 _worker_temp.js
         if: steps.check-update.outputs.has_update == 'true'
         run: |
@@ -222,7 +227,7 @@ jobs:
           
           echo "$TEMP_FILE created successfully from $BACKUP_FILE at $(pwd)/$TEMP_FILE"
           ls -la
-
+          
       - name: 混淆代码
         if: steps.check-update.outputs.has_update == 'true'
         run: |
@@ -236,7 +241,7 @@ jobs:
             exit 1
           fi
           echo "_worker.js created successfully at $(pwd)/_worker.js"
-
+          
       - name: 压缩 _worker.js 为 worker.zip
         if: steps.check-update.outputs.has_update == 'true'
         run: |
@@ -248,7 +253,7 @@ jobs:
           fi
           echo "worker.zip created successfully at $(pwd)/worker.zip"
           ls -la
-
+          
       - name: 提交更改
         if: steps.check-update.outputs.has_update == 'true'
         run: |
@@ -259,9 +264,9 @@ jobs:
           if git diff --cached --quiet; then
             echo "没有文件更改，跳过提交"
           else
-            git commit -m "混淆 _worker.js 文件、同步备份和 wrangler.toml（从 cmliu/edgetunnel），版本: ${{ steps.extract-version.outputs.version }}"
+            git commit -m "混淆 _worker.js 文件、同步备份和 wrangler.toml（从 cmliu/epeius），版本: ${{ steps.extract-version.outputs.version }}"
           fi
-
+          
       - name: 推送更改
         if: steps.check-update.outputs.has_update == 'true'
         uses: ad-m/github-push-action@master
@@ -285,7 +290,7 @@ jobs:
           fi
           echo "Extracted version: $VERSION"
           echo "version=$VERSION" >> $GITHUB_OUTPUT
-
+          
       - name: 检查已发布版本
         if: steps.check-update.outputs.has_update == 'true'
         id: check-version
@@ -301,7 +306,7 @@ jobs:
             echo "Release $VERSION does not exist, proceeding with release creation."
             echo "skip_release=false" >> $GITHUB_OUTPUT
           fi
-
+          
       - name: 创建 GitHub 发行版
         if: steps.check-update.outputs.has_update == 'true' && steps.check-version.outputs.skip_release != 'true'
         run: |
@@ -335,4 +340,3 @@ jobs:
             "https://uploads.github.com/repos/${{ github.repository }}/releases/$RELEASE_ID/assets?name=_worker.js.backup"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
