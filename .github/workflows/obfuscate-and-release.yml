@@ -107,7 +107,7 @@ jobs:
         run: |
           set -euo pipefail
           TOML_FILE="wrangler.toml"
-          OUTPUT_DIR="dist"
+          OUTPUT_DIR="main"
           
           # 检查 wrangler.toml 是否存在
           if [ ! -f "$TOML_FILE" ]; then
@@ -339,4 +339,5 @@ jobs:
             "https://uploads.github.com/repos/${{ github.repository }}/releases/$RELEASE_ID/assets?name=_worker.js.backup"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
 
