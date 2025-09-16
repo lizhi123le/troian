@@ -25,8 +25,8 @@ jobs:
         id: check-update
         run: |
           set -euo pipefail
-          WORKER_URL="https://raw.githubusercontent.com/cmliu/epeius/main/_worker.js"
-          TOML_URL="https://raw.githubusercontent.com/cmliu/epeius/main/wrangler.toml"
+          WORKER_URL="https://raw.githubusercontent.com/cmliu/edgetunnel/main/_worker.js"
+          TOML_URL="https://raw.githubusercontent.com/cmliu/edgetunnel/main/wrangler.toml"
           WORKER_FILE="_worker.js"
           BACKUP_FILE="_worker.js.backup"
           TOML_FILE="wrangler.toml"
@@ -80,32 +80,27 @@ jobs:
             fi
           fi
           
-          # 检查是否需要更新 wrangler.toml
-          if [ ! -f "$TOML_FILE" ] || [ "$NEW_TOML_HASH" != "$OLD_TOML_HASH" ]; then
-            echo "Upstream wrangler.toml updated or not present, overwriting $TOML_FILE"
-            mv temp_toml.toml "$TOML_FILE"
-            echo "$NEW_TOML_HASH" > "$TOML_HASH_FILE"
+          # 移动 wrangler.toml 到最终位置
+          mv temp_toml.toml "$TOML_FILE"
+          echo "$NEW_TOML_HASH" > "$TOML_HASH_FILE"
+          
+          # 设置 has_update 标志
+          if [ "$NEW_WORKER_HASH" != "$OLD_WORKER_HASH" ] || [ "$NEW_TOML_HASH" != "$OLD_TOML_HASH" ] || [ ! -f "$WORKER_FILE" ]; then
+            echo "上游仓库有更新或 _worker.js 不存在，执行后续步骤"
             echo "has_update=true" >> $GITHUB_OUTPUT
+            # 如果 _worker.js 不存在，创建初始版本
+            if [ ! -f "$WORKER_FILE" ] && [ -f "$BACKUP_FILE" ]; then
+              echo "Creating initial $WORKER_FILE from $BACKUP_FILE"
+              cp "$BACKUP_FILE" "$WORKER_FILE"
+            fi
           else
-            echo "No update for wrangler.toml, keeping existing $TOML_FILE"
-            rm -f temp_toml.toml
-          fi
-          
-          # 如果 _worker.js 不存在，创建初始版本
-          if [ ! -f "$WORKER_FILE" ] && [ -f "$BACKUP_FILE" ]; then
-            echo "Creating initial $WORKER_FILE from $BACKUP_FILE"
-            cp "$BACKUP_FILE" "$WORKER_FILE"
-            echo "has_update=true" >> $GITHUB_OUTPUT
-          fi
-          
-          # 如果 has_update 未设置，设为 false
-          if [ -z "${{ steps.check-update.outputs.has_update }}" ]; then
+            echo "上游仓库无更新，跳过后续步骤"
             echo "has_update=false" >> $GITHUB_OUTPUT
           fi
 
-          - name: 验证和修复 wrangler.toml
-          if: steps.check-update.outputs.has_update == 'true'
-          run: |
+      - name: 验证和修复 wrangler.toml
+        if: steps.check-update.outputs.has_update == 'true'
+        run: |
           set -euo pipefail
           TOML_FILE="wrangler.toml"
           OUTPUT_DIR="dist"
@@ -121,7 +116,7 @@ jobs:
             echo "Adding pages_build_output_dir to $TOML_FILE"
             echo 'pages_build_output_dir = "dist"' >> "$TOML_FILE"
           fi
-
+          
           # 创建输出目录
           mkdir -p "$OUTPUT_DIR"
           echo "Created output directory $OUTPUT_DIR"
@@ -241,7 +236,7 @@ jobs:
           if git diff --cached --quiet; then
             echo "没有文件更改，跳过提交"
           else
-            git commit -m "混淆 _worker.js 文件、同步备份和 wrangler.toml（从 cmliu/epeius），版本: ${{ steps.extract-version.outputs.version }}"
+            git commit -m "混淆 _worker.js 文件、同步备份和 wrangler.toml（从 cmliu/edgetunnel），版本: ${{ steps.extract-version.outputs.version }}"
           fi
 
       - name: 推送更改
@@ -317,4 +312,3 @@ jobs:
             "https://uploads.github.com/repos/${{ github.repository }}/releases/$RELEASE_ID/assets?name=_worker.js.backup"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
