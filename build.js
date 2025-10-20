@@ -29,25 +29,16 @@ const obfuscationOptions = {
   deadCodeInjection: true,
   deadCodeInjectionThreshold: 0.4,
   stringArray: true,
-  stringArrayEncoding: ['base64', 'rc4'],
-  stringArrayThreshold: 0.8,
-  transformObjectKeys: true,
-  rotateStringArray: true,
-  shuffleStringArray: true,
-  splitStrings: true,
-  splitStringsChunkLength: 3,
-  identifierNamesGenerator: 'mangled',
+  stringArrayEncoding: ['base64'],
+  stringArrayThreshold: 0.75,
   renameGlobals: true,
-  unicodeEscapeSequence: true,
-  selfDefending: true,
-  disableConsoleOutput: true,
-  target: 'browser-no-eval',
+  identifierNamesGenerator: 'mangled',
   numbersToExpressions: true,
-  simplify: true,
-  ignoreRequireImports: true,
-  domainLock: [],
-  sourceMap: false,
-  sourceMapMode: 'separate'
+  splitStrings: true,
+  splitStringsChunkLength: 10,
+  transformObjectKeys: true,
+  selfDefending: false,
+  debugProtection: false
 };
 
 // 执行混淆
@@ -61,6 +52,7 @@ try {
   process.exit(1);
 
 }
+
 
 
 
